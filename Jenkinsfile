@@ -36,7 +36,7 @@ volumes:
         stage('Docker Build') {
             steps {
                 container('docker-client') {
-                    sh ' echo "from alpine:laster" >> dockerfile
+                    sh ' echo "from alpine:laster" >> dockerfile '
                     sh 'docker version && DOCKER_BUILDKIT=1 docker build --progress plain -t testing .'
                 }
             }
