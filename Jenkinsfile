@@ -9,14 +9,14 @@ spec:
     image: alpine/git
     imagePullPolicy: Always
     command:
-    - cat
+      - cat
+    tty: true
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
     imagePullPolicy: Always
     command:
-    - sleep
-    args:
-    - 9999999
+      - cat
+    tty: true
     volumeMounts:
       - name: jenkins-docker-cfg
         mountPath: /kaniko/.docker
