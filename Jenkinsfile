@@ -1,45 +1,52 @@
 pipeline {
-    options {
-        disableConcurrentBuilds()
-    }
-    agent {
-        kubernetes {
-            label 'docker-in-docker-maven'
-            yaml """
-apiVersion: v1
+  agent {
+    kubernetes {
+      yaml """
 kind: Pod
 spec:
-containers:
-- name: git
-  image: alpine/git
-  command: [cat]
-- name: kaniko
-  image: docker:19.03.1-dind
-  env:
-    - name: DOCKER_TLS_CERTDIR
-      value: ""
-  securityContext:
-    privileged: true
-  volumeMounts:
-      - name: cache
-        mountPath: /var/lib/docker
-volumes:
-  - name: cache
-    hostPath:
-      path: /tmp
-      type: Directory
+  containers:
+  - name: git
+    image: alpine/git
+    imagePullPolicy: Always
+    command:
+    - cat
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    imagePullPolicy: Always
+    command:
+    - cat
+    volumeMounts:
+      - name: jenkins-docker-cfg
+        mountPath: /kaniko/.docker
+  volumes:
+  - name: jenkins-docker-cfg
+    projected:
+      sources:
+      - secret:
+          name: docker-credentials
+          items:
+            - key: .dockerconfigjson
+              path: config.json
 """
-        }
     }
-    stages {
-
-        stage('Docker Build') {
-            steps {
-                container('docker-client') {
-                    sh ' echo "from alpine:laster" >> dockerfile '
-                    sh 'docker version && DOCKER_BUILDKIT=1 docker build --progress plain -t testing .'
-                }
-            }
+  }
+  stages {
+      stage("checkout") {
+          steps{
+              container("git"){
+      checkout scm
+              }
+          }
+      }
+    stage('Build with Kaniko') {
+      steps {
+        container(name: 'kaniko', shell: '/busybox/sh') {
+          sh '''#!/busybox/sh
+            echo "FROM jenkins/inbound-agent:latest" > Dockerfile
+            /kaniko/executor --context `pwd` --destination darinpope/hello-kaniko:latest
+          '''
         }
+      }
     }
+  }
 }
